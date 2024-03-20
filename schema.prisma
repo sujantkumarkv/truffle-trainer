@@ -1,0 +1,91 @@
+generator client {
+  provider             = "prisma-client-py"
+  recursive_type_depth = 5
+  interface            = "sync"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = "postgresql://postgres:x5mt02kq@34.41.121.85:5432/postgres?sslmode=require&sslcert=./certs/server-ca.pem&sslidentity=./certs/client-identity.p12&sslpassword=prisma&sslaccept=accept_invalid_certs"
+}
+
+model AI {
+  id              String   @id @default(uuid())
+  createdAt       DateTime @default(now())
+  weights         String
+  context         Int
+  size            Float
+  type            AIType
+  producedByJobId String?  @unique
+  producedByJob   Job?     @relation("ProducedAI", fields: [producedByJobId], references: [id])
+  baseForJobs     Job[]    @relation("BaseAI")
+}
+
+model Job {
+  id         String     @id
+  createdAt  DateTime   @default(now())
+  status     JobStatus
+  config     String
+  dataset    String
+  logs       String?
+  cc         ChatConfig
+  baseAiId   String
+  producedAI AI?        @relation("ProducedAI")
+  baseAI     AI         @relation("BaseAI", fields: [baseAiId], references: [id])
+}
+
+enum AIType {
+  LlamaForCausalLM
+  MistralForCausalLM
+  AutoModelForCausalLM
+  PhiForCausalLM
+}
+
+enum QuantizationType {
+  q0f16
+  q0f32
+  q3f16_1
+  q4f16_1
+  q4f32_1
+  q4f16_awq
+}
+
+enum ChatConfig {
+  chatml
+  llama_default
+  llama_2
+  mistral_default
+  open_hermes_mistral
+  neural_hermes_mistral
+  codellama_completion
+  codellama_instruct
+  gpt2
+  vicuna_v1_1
+  conv_one_shot
+  redpajama_chat
+  rwkv_world
+  rwkv
+  gorilla
+  guanaco
+  dolly
+  oasst
+  stablelm
+  stablecode_completion
+  stablecode_instruct
+  minigpt
+  moss
+  LM
+  stablelm_3b
+  gpt_bigcode
+  wizardlm_7b
+  wizard_coder_or_math
+  glm
+  phi_2
+}
+
+enum JobStatus {
+  created
+  running
+  finished
+  failed
+}
