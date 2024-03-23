@@ -7,9 +7,9 @@ async def process_job(job_id):
     data_manager = DataManager(job_id)
     # Perform initial steps in parallel
     await asyncio.gather(
-        # data_manager.downloadData(),
-        # data_manager.createConfig(),
-        # data_manager.downloadModel()
+        data_manager.downloadData(),
+        data_manager.downloadModel(),
+        data_manager.createConfig(),
     )
     # Initiate the training process
     trainer = Trainer(job_id)
