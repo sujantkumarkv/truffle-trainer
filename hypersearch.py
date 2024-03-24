@@ -2,7 +2,7 @@ import time
 import tempfile
 import torch
 import ray
-import os, json
+import os, json, subprocess
 import numpy as np
 from torch.utils.tensorboard import SummaryWriter
 from datetime import datetime
@@ -68,7 +68,7 @@ class HyperSearch:
         return data_loader
 
 
-    def compute_metrics(predicted, actual):
+    def compute_benchmarks(self, epoch):
         # TODO: appropriate benchmarks
         """
         the heuristics of benchmarks & choosing best hyperparams config based on that is non-trivial;
@@ -79,21 +79,46 @@ class HyperSearch:
         idea: 
         maybe a good choice is to ask user whats' the intent of finetune? 
         what kind of results are expected & what's the nature of data?
+
+        # currently i use eleutherai's harness to get benchmarks..
+        # though benchmarks are mostly d*ck-measuring contests now, but that's what's for now.
         """
-        pass
+        # the output directory shall exist
+        output_dir = f"hypersearch_eval/epoch_{epoch}"
+        os.makedirs(output_dir, exist_ok=True)
+        # Construct with dynamic values
+        command = [
+            "lm_eval",
+            "--model", "hf",
+            "--model_args", f"pretrained={self.model_path}",
+            "--tasks", "lambada_openai,hellaswag", # more available
+            "--device", "cuda:0",
+            "--batch_size", "auto",
+            "--output_path", output_dir
+        ]
+
+        # Run
+        result = subprocess.run(command, capture_output=True, text=True)
+
+        # Check if successful
+        if result.returncode != 0:
+            print(f"Error running command: {result.stderr}")
+            return None
+
+        print(f"Command output: {result.stdout}")
 
     def train_model(config, model, train_data, val_data, sample_pct, batch_size):
         # TODO:  try getting wandb work OR see if we can use tensorboard
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         writer = SummaryWriter(f"runs at {timestamp}")
         best_eval_loss = float('inf')
-        NUM_EPOCHS = 2 
+        NUM_EPOCHS = 3
         alpha = config["r"]
 
         lora_config = LoraConfig(
             r=config["r"], 
             lora_alpha=alpha,
-            target_modules=config["target_modules"],
+            # target_modules=config["target_modules"],
             lora_dropout=config["lora_dropout"],
             bias="none",
             task_type=TaskType.SEQ_CLS
@@ -129,7 +154,7 @@ class HyperSearch:
             print(f"Epoch {epoch + 1}")
             model.train()
             running_loss = 0
-
+            # train loop
             for j, batch in enumerate(train_loader):
                 output = model(**batch)
                 loss = output.loss
@@ -147,20 +172,23 @@ class HyperSearch:
                     running_loss = 0
 
             model.eval()
-
+            # val loop
             for i, batch in enumerate(val_loader):
                 output = model(**batch)
                 running_eval_loss += output.loss
-
+            
+            # benchmarks
+            self.compute_benchmarks()
+            print("benchmarks available in hypersearch_eval/.")
             avg_eval_loss = running_eval_loss / len(val_loader)
 
-            print(f"Avg validation loss ==>: {float(avg_eval_loss)}")
+            print(f"Avg validation loss =>: {float(avg_eval_loss)}")
             writer.add_scalar("Eval Loss", avg_eval_loss, epoch + 1)
             writer.flush()
 
             train.report({"loss": avg_eval_loss.item()})
 
-            print("Finished Training")
+            print("Finished...")
 
 
     def create_search_space():
