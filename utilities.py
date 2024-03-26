@@ -66,7 +66,7 @@ class DataManager:
         if ai and ai.weights:
             repo_id, revision = ai.weights.split(':') if ":" in ai.weights else (ai.weights, None)
             snapshot_download(repo_id=repo_id, revision=revision, ignore_patterns="quantized/*", local_dir=self.model_path, 
-                                use_auth_token=True, local_dir_use_symlinks=False, token="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")
+                                use_auth_token=True, local_dir_use_symlinks=False, token="")
             # get checkpoint
             tokenizer_checkpoint = self.getCheckpoint()
             # get tokenizer

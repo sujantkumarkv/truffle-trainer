@@ -80,7 +80,7 @@ class HyperSearch:
         maybe a good choice is to ask user whats' the intent of finetune? 
         what kind of results are expected & what's the nature of data?
 
-        # currently i use eleutherai's harness to get benchmarks..
+        # currently i use eleutherai's harness to get benchmarks,
         # though benchmarks are mostly d*ck-measuring contests now, but that's what's for now.
         """
         # the output directory shall exist
