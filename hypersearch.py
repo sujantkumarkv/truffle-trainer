@@ -16,15 +16,15 @@ from ray.tune import  with_parameters, with_resources, TuneConfig
 from ray.tune.tuner import Tuner
 from sklearn.metrics import f1_score, roc_auc_score, precision_score, recall_score, accuracy_score
 from sklearn.model_selection import train_test_split
-from transformers import AutoTokenizer, AutoModel
+from transformers import AutoTokenizer, AutoModel, AutoModelForCausalLM
 
 """
 the dataset format is currently jsonl (instruct finetune). we can use `model = get_peft_model` & train with for loop & `loss.backward()`
-but, since hyperparam-search is also many finetune steps with diff configs, we can use axolotl only AND 
+but, since hyperparam-search is also many finetune steps with diff configs, maybe we can use axolotl only?!! AND
 with subset of data prolly (condition: how much is data? to then take a subset for hyperparam-search or take the full data then)
 """
 
-### TODOs (2 hrs max. write to srikanth before 12)
+### TODOs
 # how/why to use train/val loop
 # `Tuner` variables
 
@@ -68,44 +68,44 @@ class HyperSearch:
         return data_loader
 
 
-    def compute_benchmarks(self, epoch):
-        # TODO: appropriate benchmarks
-        """
-        the heuristics of benchmarks & choosing best hyperparams config based on that is non-trivial;
-        because the metrics change based on task too, like user may finetune for classfication & then we may need precision, recall 
-        but for most Language, math, coding tasks, different metrics wld be needed & the resulting model wld perform based
-        on data & intent of result by user.
+    # def compute_benchmarks(self, epoch):
+    #     # TODO: appropriate benchmarks
+    #     """
+    #     the heuristics of benchmarks & choosing best hyperparams config based on that is non-trivial;
+    #     because the metrics change based on task too, like user may finetune for classfication & then we may need precision, recall 
+    #     but for most Language, math, coding tasks, different metrics wld be needed & the resulting model wld perform based
+    #     on data & intent of result by user.
 
-        idea: 
-        maybe a good choice is to ask user whats' the intent of finetune? 
-        what kind of results are expected & what's the nature of data?
+    #     idea: 
+    #     maybe a good choice is to ask user whats' the intent of finetune? 
+    #     what kind of results are expected & what's the nature of data?
 
-        # currently i use eleutherai's harness to get benchmarks,
-        # though benchmarks are mostly d*ck-measuring contests now, but that's what's for now.
-        """
-        # the output directory shall exist
-        output_dir = f"hypersearch_eval/epoch_{epoch}"
-        os.makedirs(output_dir, exist_ok=True)
-        # Construct with dynamic values
-        command = [
-            "lm_eval",
-            "--model", "hf",
-            "--model_args", f"pretrained={self.model_path}",
-            "--tasks", "lambada_openai,hellaswag", # more available
-            "--device", "cuda:0",
-            "--batch_size", "auto",
-            "--output_path", output_dir
-        ]
+    #     # currently i use eleutherai's harness to get benchmarks,
+    #     # though benchmarks are mostly d**k-measuring contests now, but that's what's for now.
+    #     """
+    #     # the output directory shall exist
+    #     output_dir = f"hypersearch_eval/epoch_{epoch}"
+    #     os.makedirs(output_dir, exist_ok=True)
+    #     # Construct cli command
+    #     command = [
+    #         "lm_eval",
+    #         "--model", "hf",
+    #         "--model_args", f"pretrained={self.model_path}",
+    #         "--tasks", "lambada_openai,hellaswag", # more available
+    #         "--device", "cuda:0",
+    #         "--batch_size", "auto",
+    #         "--output_path", output_dir
+    #     ]
 
-        # Run
-        result = subprocess.run(command, capture_output=True, text=True)
+    #     # Run
+    #     result = subprocess.run(command, capture_output=True, text=True)
 
-        # Check if successful
-        if result.returncode != 0:
-            print(f"Error running command: {result.stderr}")
-            return None
+    #     # Check if successful
+    #     if result.returncode != 0:
+    #         print(f"Error running command: {result.stderr}")
+    #         return None
 
-        print(f"Command output: {result.stdout}")
+    #     print(f"Command output: {result.stdout}")
 
     def train_model(config, model, train_data, val_data, sample_pct, batch_size):
         # TODO:  try getting wandb work OR see if we can use tensorboard
@@ -178,7 +178,7 @@ class HyperSearch:
                 running_eval_loss += output.loss
             
             # benchmarks
-            self.compute_benchmarks()
+            # self.compute_benchmarks()
             print("benchmarks available in hypersearch_eval/.")
             avg_eval_loss = running_eval_loss / len(val_loader)
 
@@ -201,7 +201,7 @@ class HyperSearch:
 
     # TODO: find more optimal or learn these params too. eg, `batch_size` 
     def main(sample_pct=0.5, batch_size=16, max_num_epochs=10, num_samples=5):
-        model = AutoModel.from_pretrained(self.model_path, local_files_only=True) # model is already downloaed in utitlities.py's `downloadModel`
+        model = AutoModelForCausalLM.from_pretrained(self.model_path, local_files_only=True) # model is already downloaed in utitlities.py's `downloadModel`
         train_data, val_data = self.get_split_data(val_pct=0.2)
 
         train_data_ray = ray.put(train_data)
@@ -218,7 +218,7 @@ class HyperSearch:
             with_resources(
                 tune.with_parameters(train_model, model=model_ray, train_data=train_data_ray, 
                                 val_data=val_data_ray, sample_pct=sample_pct, batch_size=batch_size),
-                resources={"cpu": 2}), # TODO: decide the values here OR setup dynamic config
+                resources={"gpu": 1}), # TODO: decide the values here OR setup dynamic config
             tune_config=TuneConfig(
                 metric="loss", # look for more heuristics here
                 mode="min",

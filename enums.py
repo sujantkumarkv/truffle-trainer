@@ -1,0 +1,53 @@
+from enum import Enum
+
+class AIType(Enum):
+    LlamaForCausalLM = "LlamaForCausalLM"
+    MistralForCausalLM = "MistralForCausalLM"
+    AutoModelForCausalLM = "AutoModelForCausalLM"
+    PhiForCausalLM = "PhiForCausalLM"
+
+class QuantizationType(Enum):
+    q0f16 = "q0f16"
+    q0f32 = "q0f32"
+    q3f16_1 = "q3f16_1"
+    q4f16_1 = "q4f16_1"
+    q4f32_1 = "q4f32_1"
+    q4f16_awq = "q4f16_awq"
+
+class ChatConfig(Enum):
+    chatml = "chatml"
+    llama_default = "llama_default"
+    llama_2 = "llama_2"
+    mistral_default = "mistral_default"
+    open_hermes_mistral = "open_hermes_mistral"
+    neural_hermes_mistral = "neural_hermes_mistral"
+    codellama_completion = "codellama_completion"
+    codellama_instruct = "codellama_instruct"
+    gpt2 = "gpt2"
+    vicuna_v1_1 = "vicuna_v1_1"
+    conv_one_shot = "conv_one_shot"
+    redpajama_chat = "redpajama_chat"
+    rwkv_world = "rwkv_world"
+    rwkv = "rwkv"
+    gorilla = "gorilla"
+    guanaco = "guanaco"
+    dolly = "dolly"
+    oasst = "oasst"
+    stablelm = "stablelm"
+    stablecode_completion = "stablecode_completion"
+    stablecode_instruct = "stablecode_instruct"
+    minigpt = "minigpt"
+    moss = "moss"
+    LM = "LM"
+    stablelm_3b = "stablelm_3b"
+    gpt_bigcode = "gpt_bigcode"
+    wizardlm_7b = "wizardlm_7b"
+    wizard_coder_or_math = "wizard_coder_or_math"
+    glm = "glm"
+    phi_2 = "phi_2"
+
+class JobStatus(Enum):
+    created = "created"
+    running = "running"
+    finished = "finished"
+    failed = "failed"

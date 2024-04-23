@@ -2,3 +2,5 @@ wandb/
 last_run_prepared/
 __pycache__/
 flagged/
+mock_job_id/model/
+mock_job_id/tokenizer/
